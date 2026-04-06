@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a reproducible protocol bug
+title: "fix: "
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      placeholder: Charging during the grace period can still advance the next billing timestamp.
+    validations:
+      required: true
+  - type: textarea
+    id: affected
+    attributes:
+      label: Affected contract method or module
+      placeholder: charge(), billing.rs, migration.rs, storage.rs
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Include a failing test shape, ledger setup, or transaction sequence if possible.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Explain whether this affects billing correctness, authorization, storage, or integrations.
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      options:
+        - label: I searched existing issues first.
+          required: true
+        - label: This is not a security disclosure.
+          required: true

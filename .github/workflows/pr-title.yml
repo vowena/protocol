@@ -1,0 +1,29 @@
+name: PR Title
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+
+permissions:
+  pull-requests: read
+
+jobs:
+  conventional-title:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate PR title
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = context.payload.pull_request.title;
+            const pattern = /^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([^)]+\))?!?: .+/;
+            if (!pattern.test(title)) {
+              core.setFailed(
+                `Pull request title "${title}" must follow Conventional Commits, for example "fix: prevent double-charge during grace period".`
+              );
+            }

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Support guide
+    url: https://github.com/vowena/protocol/blob/main/SUPPORT.md
+    about: Start here if you are unsure whether this belongs in the protocol repo
+  - name: Security policy
+    url: https://github.com/vowena/protocol/security/policy
+    about: Report vulnerabilities privately

@@ -13,7 +13,7 @@ const MONTH: u64 = 2_592_000; // ~30 days in seconds
 const PLAN_AMOUNT: i128 = 9_990_000; // 0.999 USDC (7 decimals)
 const PRICE_CEILING: i128 = 15_000_000; // 1.5 USDC
 const GRACE_PERIOD: u64 = 2_592_000; // 30 days
-const MINT_AMOUNT: i128 = 1_000_0000000; // 1000 USDC
+const MINT_AMOUNT: i128 = 10_000_000_000; // 1000 USDC
 
 struct TestContext {
     env: Env,
@@ -88,12 +88,6 @@ fn advance_time(env: &Env, seconds: u64) {
     let current = env.ledger().timestamp();
     env.ledger().with_mut(|li| {
         li.timestamp = current + seconds;
-    });
-}
-
-fn set_time(env: &Env, timestamp: u64) {
-    env.ledger().with_mut(|li| {
-        li.timestamp = timestamp;
     });
 }
 
@@ -344,8 +338,7 @@ fn test_charge_grace_retry_success() {
     assert!(!result);
 
     // Fund the subscriber during grace period
-    ctx.token_admin_client
-        .mint(&retry_subscriber, &MINT_AMOUNT);
+    ctx.token_admin_client.mint(&retry_subscriber, &MINT_AMOUNT);
 
     // Retry during grace period - should succeed
     advance_time(&ctx.env, 100); // small advance, still in grace
@@ -667,8 +660,7 @@ fn test_reactivate() {
     assert_eq!(sub.status, SubscriptionStatus::Paused);
 
     // Fund and reactivate
-    ctx.token_admin_client
-        .mint(&broke_subscriber, &MINT_AMOUNT);
+    ctx.token_admin_client.mint(&broke_subscriber, &MINT_AMOUNT);
     let charged = ctx.client.reactivate(&broke_subscriber, &sub_id);
     assert!(charged);
 

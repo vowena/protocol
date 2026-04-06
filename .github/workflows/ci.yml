@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: protocol-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  protocol:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt clippy
+          rustup default stable
+          rustup target add wasm32-unknown-unknown
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Lint
+        run: cargo clippy --all-targets --locked -- -D warnings
+
+      - name: Test
+        run: cargo test --locked
+
+      - name: Build WASM artifact
+        run: cargo build --target wasm32-unknown-unknown --release --locked

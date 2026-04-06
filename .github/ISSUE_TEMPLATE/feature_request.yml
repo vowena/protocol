@@ -1,0 +1,27 @@
+name: Feature request
+description: Propose a scoped protocol improvement
+title: "feat: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      placeholder: Merchants cannot update billing cadence without migrating every subscriber to a new plan.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Describe the contract behavior you want and why it is safe.
+    validations:
+      required: true
+  - type: textarea
+    id: tradeoffs
+    attributes:
+      label: Risks and tradeoffs
+      description: Mention invariants, migration impact, or off-chain integration concerns.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

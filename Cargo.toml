@@ -2,6 +2,11 @@
 name = "vowena"
 version = "0.1.0"
 edition = "2021"
+description = "Soroban smart contracts for the Vowena recurring billing protocol on Stellar"
+license = "Apache-2.0"
+repository = "https://github.com/vowena/protocol"
+homepage = "https://vowena.xyz"
+documentation = "https://docs.vowena.xyz"
 
 [lib]
 crate-type = ["cdylib"]

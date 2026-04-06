@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use soroban_sdk::{Address, Env, Symbol};
 
 pub fn emit_plan_created(env: &Env, plan_id: u64, merchant: &Address) {
@@ -34,17 +36,13 @@ pub fn emit_charge_failed(env: &Env, sub_id: u64, subscriber: &Address) {
 }
 
 pub fn emit_subscription_cancelled(env: &Env, sub_id: u64, subscriber: &Address) {
-    env.events().publish(
-        (Symbol::new(env, "sub_cancel"), subscriber.clone()),
-        sub_id,
-    );
+    env.events()
+        .publish((Symbol::new(env, "sub_cancel"), subscriber.clone()), sub_id);
 }
 
 pub fn emit_subscription_paused(env: &Env, sub_id: u64, subscriber: &Address) {
-    env.events().publish(
-        (Symbol::new(env, "sub_paused"), subscriber.clone()),
-        sub_id,
-    );
+    env.events()
+        .publish((Symbol::new(env, "sub_paused"), subscriber.clone()), sub_id);
 }
 
 pub fn emit_subscription_expired(env: &Env, sub_id: u64, subscriber: &Address) {
@@ -55,10 +53,8 @@ pub fn emit_subscription_expired(env: &Env, sub_id: u64, subscriber: &Address) {
 }
 
 pub fn emit_subscription_reactivated(env: &Env, sub_id: u64, subscriber: &Address) {
-    env.events().publish(
-        (Symbol::new(env, "sub_react"), subscriber.clone()),
-        sub_id,
-    );
+    env.events()
+        .publish((Symbol::new(env, "sub_react"), subscriber.clone()), sub_id);
 }
 
 pub fn emit_refund_issued(env: &Env, sub_id: u64, amount: i128, subscriber: &Address) {
@@ -73,12 +69,7 @@ pub fn emit_migration_requested(env: &Env, old_plan_id: u64, new_plan_id: u64) {
         .publish((Symbol::new(env, "mig_req"),), (old_plan_id, new_plan_id));
 }
 
-pub fn emit_migration_accepted(
-    env: &Env,
-    old_sub_id: u64,
-    new_sub_id: u64,
-    subscriber: &Address,
-) {
+pub fn emit_migration_accepted(env: &Env, old_sub_id: u64, new_sub_id: u64, subscriber: &Address) {
     env.events().publish(
         (Symbol::new(env, "mig_accept"), subscriber.clone()),
         (old_sub_id, new_sub_id),
@@ -86,8 +77,6 @@ pub fn emit_migration_accepted(
 }
 
 pub fn emit_migration_rejected(env: &Env, sub_id: u64, subscriber: &Address) {
-    env.events().publish(
-        (Symbol::new(env, "mig_reject"), subscriber.clone()),
-        sub_id,
-    );
+    env.events()
+        .publish((Symbol::new(env, "mig_reject"), subscriber.clone()), sub_id);
 }

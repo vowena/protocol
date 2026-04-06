@@ -24,10 +24,6 @@ pub enum DataKey {
 
 // --- Instance storage ---
 
-pub fn get_admin(env: &Env) -> Address {
-    env.storage().instance().get(&DataKey::Admin).unwrap()
-}
-
 pub fn set_admin(env: &Env, admin: &Address) {
     env.storage().instance().set(&DataKey::Admin, admin);
 }
@@ -61,10 +57,7 @@ pub fn set_next_sub_id(env: &Env, id: u64) {
 // --- Plan storage ---
 
 pub fn get_plan(env: &Env, id: u64) -> Plan {
-    env.storage()
-        .persistent()
-        .get(&DataKey::Plan(id))
-        .unwrap()
+    env.storage().persistent().get(&DataKey::Plan(id)).unwrap()
 }
 
 pub fn has_plan(env: &Env, id: u64) -> bool {
@@ -89,9 +82,7 @@ pub fn has_sub(env: &Env, id: u64) -> bool {
 }
 
 pub fn set_sub(env: &Env, sub: &Subscription) {
-    env.storage()
-        .persistent()
-        .set(&DataKey::Sub(sub.id), sub);
+    env.storage().persistent().set(&DataKey::Sub(sub.id), sub);
     bump_sub(env, sub.id);
 }
 

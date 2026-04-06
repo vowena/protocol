@@ -73,7 +73,12 @@ pub fn process_charge(env: &Env, sub_id: u64) -> bool {
     }
 
     // Perform the actual charge via transfer_from
-    token_client.transfer_from(&contract_addr, &sub.subscriber, &plan.merchant, &plan.amount);
+    token_client.transfer_from(
+        &contract_addr,
+        &sub.subscriber,
+        &plan.merchant,
+        &plan.amount,
+    );
 
     sub.periods_billed += 1;
     sub.next_billing_time += plan.period;

@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 use soroban_sdk::{contract, contractimpl, token, Address, Env, Vec};
 
 use crate::billing;
@@ -74,11 +76,7 @@ impl VowenaContract {
     }
 
     /// Subscribe to a plan. Sets token allowance and creates subscription. Returns sub ID.
-    pub fn subscribe(
-        env: Env,
-        subscriber: Address,
-        plan_id: u64,
-    ) -> Result<u64, VowenaError> {
+    pub fn subscribe(env: Env, subscriber: Address, plan_id: u64) -> Result<u64, VowenaError> {
         subscriber.require_auth();
 
         if !storage::has_plan(&env, plan_id) {
@@ -107,12 +105,7 @@ impl VowenaContract {
         let expiration_ledger = env.ledger().sequence() + capped_duration;
 
         let token_client = token::TokenClient::new(&env, &plan.token);
-        token_client.approve(
-            &subscriber,
-            &contract_addr,
-            &allowance,
-            &expiration_ledger,
-        );
+        token_client.approve(&subscriber, &contract_addr, &allowance, &expiration_ledger);
 
         // Create subscription
         let sub_id = storage::get_next_sub_id(&env);
@@ -193,11 +186,7 @@ impl VowenaContract {
     }
 
     /// Update a plan's billing amount. Must stay within price ceiling.
-    pub fn update_plan_amount(
-        env: Env,
-        plan_id: u64,
-        new_amount: i128,
-    ) -> Result<(), VowenaError> {
+    pub fn update_plan_amount(env: Env, plan_id: u64, new_amount: i128) -> Result<(), VowenaError> {
         if !storage::has_plan(&env, plan_id) {
             return Err(VowenaError::PlanNotFound);
         }
@@ -241,21 +230,13 @@ impl VowenaContract {
     }
 
     /// Reject a pending migration. Subscriber stays on current plan.
-    pub fn reject_migration(
-        env: Env,
-        subscriber: Address,
-        sub_id: u64,
-    ) -> Result<(), VowenaError> {
+    pub fn reject_migration(env: Env, subscriber: Address, sub_id: u64) -> Result<(), VowenaError> {
         subscriber.require_auth();
         migration::process_reject_migration(&env, &subscriber, sub_id)
     }
 
     /// Reactivate a paused subscription. Re-approves allowance and attempts charge.
-    pub fn reactivate(
-        env: Env,
-        subscriber: Address,
-        sub_id: u64,
-    ) -> Result<bool, VowenaError> {
+    pub fn reactivate(env: Env, subscriber: Address, sub_id: u64) -> Result<bool, VowenaError> {
         subscriber.require_auth();
 
         if !storage::has_sub(&env, sub_id) {
