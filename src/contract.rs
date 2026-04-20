@@ -76,7 +76,20 @@ impl VowenaContract {
     }
 
     /// Subscribe to a plan. Sets token allowance and creates subscription. Returns sub ID.
-    pub fn subscribe(env: Env, subscriber: Address, plan_id: u64) -> Result<u64, VowenaError> {
+    /// Subscribe to a plan. Caller must supply the absolute `expiration_ledger`
+    /// for the SAC allowance (typically `current_ledger + MAX_APPROVAL_LEDGERS`)
+    /// and `allowance_periods` to compute the total spending cap. These are
+    /// parameters rather than contract-computed values so that the nested
+    /// `token.approve` call's args match exactly between transaction simulation
+    /// and on-chain submission — without this, Soroban's auth tree rejects the
+    /// nested invocation.
+    pub fn subscribe(
+        env: Env,
+        subscriber: Address,
+        plan_id: u64,
+        expiration_ledger: u32,
+        allowance_periods: u32,
+    ) -> Result<u64, VowenaError> {
         subscriber.require_auth();
 
         if !storage::has_plan(&env, plan_id) {
@@ -88,22 +101,16 @@ impl VowenaContract {
             return Err(VowenaError::PlanInactive);
         }
 
-        // Calculate and set token allowance
-        let contract_addr = env.current_contract_address();
-        let periods_for_approval: u64 = if plan.max_periods > 0 {
-            plan.max_periods as u64
+        // Clamp allowance periods to the plan's max (or a safe ceiling for
+        // unlimited plans) so the caller can't inflate the allowance cap.
+        let effective_periods: u32 = if plan.max_periods > 0 {
+            allowance_periods.min(plan.max_periods)
         } else {
-            120
+            allowance_periods.min(120)
         };
-        let allowance = plan.price_ceiling * (periods_for_approval as i128);
-        let ideal_duration = ((periods_for_approval * plan.period) / 5) as u32;
-        let capped_duration = if ideal_duration > storage::MAX_APPROVAL_LEDGERS {
-            storage::MAX_APPROVAL_LEDGERS
-        } else {
-            ideal_duration
-        };
-        let expiration_ledger = env.ledger().sequence() + capped_duration;
+        let allowance = plan.price_ceiling * (effective_periods as i128);
 
+        let contract_addr = env.current_contract_address();
         let token_client = token::TokenClient::new(&env, &plan.token);
         token_client.approve(&subscriber, &contract_addr, &allowance, &expiration_ledger);
 
@@ -219,14 +226,24 @@ impl VowenaContract {
         migration::process_request_migration(&env, &merchant, old_plan_id, new_plan_id)
     }
 
-    /// Accept a pending migration. Cancels old sub and creates new sub on target plan.
+    /// Accept a pending migration. Caller must supply the absolute
+    /// `expiration_ledger` and `allowance_periods` for the new allowance
+    /// (same deterministic-auth rationale as `subscribe`).
     pub fn accept_migration(
         env: Env,
         subscriber: Address,
         sub_id: u64,
+        expiration_ledger: u32,
+        allowance_periods: u32,
     ) -> Result<u64, VowenaError> {
         subscriber.require_auth();
-        migration::process_accept_migration(&env, &subscriber, sub_id)
+        migration::process_accept_migration(
+            &env,
+            &subscriber,
+            sub_id,
+            expiration_ledger,
+            allowance_periods,
+        )
     }
 
     /// Reject a pending migration. Subscriber stays on current plan.
@@ -235,8 +252,16 @@ impl VowenaContract {
         migration::process_reject_migration(&env, &subscriber, sub_id)
     }
 
-    /// Reactivate a paused subscription. Re-approves allowance and attempts charge.
-    pub fn reactivate(env: Env, subscriber: Address, sub_id: u64) -> Result<bool, VowenaError> {
+    /// Reactivate a paused subscription. Caller must supply the absolute
+    /// `expiration_ledger` and `allowance_periods` for the SAC re-approval
+    /// (same rationale as `subscribe` — keeps auth tree deterministic).
+    pub fn reactivate(
+        env: Env,
+        subscriber: Address,
+        sub_id: u64,
+        expiration_ledger: u32,
+        allowance_periods: u32,
+    ) -> Result<bool, VowenaError> {
         subscriber.require_auth();
 
         if !storage::has_sub(&env, sub_id) {
@@ -253,23 +278,15 @@ impl VowenaContract {
 
         let plan = storage::get_plan(&env, sub.plan_id);
 
-        // Re-approve allowance
-        let contract_addr = env.current_contract_address();
-        let periods_for_approval: u64 = if plan.max_periods > 0 {
-            let remaining = plan.max_periods.saturating_sub(sub.periods_billed);
-            remaining as u64
+        // Clamp caller-provided periods to remaining authorized periods.
+        let effective_periods: u32 = if plan.max_periods > 0 {
+            allowance_periods.min(plan.max_periods.saturating_sub(sub.periods_billed))
         } else {
-            120
+            allowance_periods.min(120)
         };
-        let allowance = plan.price_ceiling * (periods_for_approval as i128);
-        let ideal_duration = ((periods_for_approval * plan.period) / 5) as u32;
-        let capped_duration = if ideal_duration > storage::MAX_APPROVAL_LEDGERS {
-            storage::MAX_APPROVAL_LEDGERS
-        } else {
-            ideal_duration
-        };
-        let expiration_ledger = env.ledger().sequence() + capped_duration;
+        let allowance = plan.price_ceiling * (effective_periods as i128);
 
+        let contract_addr = env.current_contract_address();
         let token_client = token::TokenClient::new(&env, &plan.token);
         token_client.approve(&subscriber, &contract_addr, &allowance, &expiration_ledger);
 

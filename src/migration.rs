@@ -39,6 +39,8 @@ pub fn process_accept_migration(
     env: &Env,
     subscriber: &Address,
     sub_id: u64,
+    expiration_ledger: u32,
+    allowance_periods: u32,
 ) -> Result<u64, VowenaError> {
     let old_sub = storage::get_sub(env, sub_id);
 
@@ -81,22 +83,15 @@ pub fn process_accept_migration(
     storage::add_subscriber_sub(env, subscriber, new_sub_id);
     storage::add_plan_sub(env, new_plan.id, new_sub_id);
 
-    // Set new token allowance
-    let contract_addr = env.current_contract_address();
-    let periods_for_approval: u64 = if new_plan.max_periods > 0 {
-        new_plan.max_periods as u64
+    // Set new token allowance using caller-provided deterministic params.
+    let effective_periods: u32 = if new_plan.max_periods > 0 {
+        allowance_periods.min(new_plan.max_periods)
     } else {
-        120
+        allowance_periods.min(120)
     };
-    let allowance = new_plan.price_ceiling * (periods_for_approval as i128);
-    let ideal_duration = ((periods_for_approval * new_plan.period) / 5) as u32;
-    let capped_duration = if ideal_duration > storage::MAX_APPROVAL_LEDGERS {
-        storage::MAX_APPROVAL_LEDGERS
-    } else {
-        ideal_duration
-    };
-    let expiration_ledger = env.ledger().sequence() + capped_duration;
+    let allowance = new_plan.price_ceiling * (effective_periods as i128);
 
+    let contract_addr = env.current_contract_address();
     let token_client = token::TokenClient::new(env, &new_plan.token);
     token_client.approve(subscriber, &contract_addr, &allowance, &expiration_ledger);
 
