@@ -27,15 +27,15 @@ The contract handles the full subscription lifecycle: plan creation, subscribing
 
 The contract is organized into focused modules:
 
-| Module | Purpose |
-|---|---|
-| `contract.rs` | Public entry points for all contract functions |
-| `types.rs` | Core data types: `Plan`, `Subscription`, `SubscriptionStatus` |
-| `storage.rs` | Ledger storage helpers, TTL management, key definitions |
-| `billing.rs` | Charge processing logic, trial and grace period handling |
-| `migration.rs` | Plan migration request, accept, and reject flows |
-| `events.rs` | Structured event emission for indexers and UIs |
-| `errors.rs` | `VowenaError` enum with all contract error codes |
+| Module         | Purpose                                                       |
+| -------------- | ------------------------------------------------------------- |
+| `contract.rs`  | Public entry points for all contract functions                |
+| `types.rs`     | Core data types: `Plan`, `Subscription`, `SubscriptionStatus` |
+| `storage.rs`   | Ledger storage helpers, TTL management, key definitions       |
+| `billing.rs`   | Charge processing logic, trial and grace period handling      |
+| `migration.rs` | Plan migration request, accept, and reject flows              |
+| `events.rs`    | Structured event emission for indexers and UIs                |
+| `errors.rs`    | `VowenaError` enum with all contract error codes              |
 
 ## Prerequisites
 
