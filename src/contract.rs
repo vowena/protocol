@@ -119,7 +119,7 @@ impl VowenaContract {
         storage::set_next_sub_id(&env, sub_id + 1);
 
         let now = env.ledger().timestamp();
-        let sub = Subscription {
+        let mut sub = Subscription {
             id: sub_id,
             plan_id,
             subscriber: subscriber.clone(),
@@ -131,6 +131,19 @@ impl VowenaContract {
             migration_target: 0,
             cancelled_at: 0,
         };
+
+        // Stripe-style semantics: charge on signup unless the plan has a trial.
+        // The allowance we just approved covers this pull.
+        if plan.trial_periods == 0 && plan.amount > 0 {
+            token_client.transfer_from(
+                &contract_addr,
+                &subscriber,
+                &plan.merchant,
+                &plan.amount,
+            );
+            sub.periods_billed = 1;
+            events::emit_charge_success(&env, sub_id, plan.amount, &subscriber);
+        }
 
         storage::set_sub(&env, &sub);
         storage::add_subscriber_sub(&env, &subscriber, sub_id);
