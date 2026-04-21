@@ -85,7 +85,7 @@ fn create_default_plan(ctx: &TestContext) -> u64 {
         &PRICE_CEILING,
         &String::from_str(&ctx.env, "Test Plan"),
 
-        &0u32,
+        &project_id_for(&ctx),
     )
 }
 
@@ -153,7 +153,7 @@ fn test_create_plan_invalid_amount() {
         &String::from_str(&ctx.env, "Test Plan"),
 
 
-        &0u32,
+        &project_id_for(&ctx),
     );
     assert!(result.is_err());
 }
@@ -174,7 +174,7 @@ fn test_create_plan_invalid_period() {
         &String::from_str(&ctx.env, "Test Plan"),
 
 
-        &0u32,
+        &project_id_for(&ctx),
     );
     assert!(result.is_err());
 }
@@ -195,7 +195,7 @@ fn test_create_plan_ceiling_below_amount() {
         &String::from_str(&ctx.env, "Test Plan"),
 
 
-        &0u32,
+        &project_id_for(&ctx),
     );
     assert!(result.is_err());
 }
@@ -293,7 +293,7 @@ fn test_charge_trial_period() {
         &String::from_str(&ctx.env, "Test Plan"),
 
 
-        &0u32,
+        &project_id_for(&ctx),
     );
 
     let sub_id = ctx.client.subscribe(&ctx.subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
@@ -448,7 +448,7 @@ fn test_charge_max_periods_expired() {
         &String::from_str(&ctx.env, "Test Plan"),
 
 
-        &0u32,
+        &project_id_for(&ctx),
     );
 
     let sub_id = ctx.client.subscribe(&ctx.subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
@@ -608,7 +608,7 @@ fn test_migration_request() {
         &String::from_str(&ctx.env, "New Plan"),
 
 
-        &0u32,
+        &project_id_for(&ctx),
     );
 
     ctx.client
@@ -637,7 +637,7 @@ fn test_migration_accept() {
         &String::from_str(&ctx.env, "New Plan"),
 
 
-        &0u32,
+        &project_id_for(&ctx),
     );
 
     ctx.client
@@ -675,7 +675,7 @@ fn test_migration_reject() {
         &String::from_str(&ctx.env, "New Plan"),
 
 
-        &0u32,
+        &project_id_for(&ctx),
     );
 
     ctx.client
@@ -782,7 +782,7 @@ fn test_full_lifecycle_with_failure_and_reactivation() {
         &String::from_str(&ctx.env, "Test Plan"),
 
 
-        &0u32,
+        &project_id_for(&ctx),
     );
 
     // Subscribe

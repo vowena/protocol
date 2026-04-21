@@ -7,7 +7,7 @@ use crate::errors::VowenaError;
 use crate::events;
 use crate::migration;
 use crate::storage;
-use crate::types::{Plan, Subscription, SubscriptionStatus};
+use crate::types::{Plan, Project, Subscription, SubscriptionStatus};
 
 #[contract]
 pub struct VowenaContract;
@@ -22,8 +22,38 @@ impl VowenaContract {
         storage::set_admin(&env, &admin);
         storage::set_next_plan_id(&env, 1);
         storage::set_next_sub_id(&env, 1);
+        storage::set_next_project_id(&env, 1);
         storage::bump_instance(&env);
         Ok(())
+    }
+
+    /// Create a new Project. Returns the chain-assigned project ID.
+    /// Projects group plans under a merchant. A merchant can have many.
+    pub fn create_project(
+        env: Env,
+        merchant: Address,
+        name: String,
+        description: String,
+    ) -> Result<u64, VowenaError> {
+        merchant.require_auth();
+
+        let id = storage::get_next_project_id(&env);
+        storage::set_next_project_id(&env, id + 1);
+
+        let project = Project {
+            id,
+            merchant: merchant.clone(),
+            name,
+            description,
+            created_at: env.ledger().timestamp(),
+        };
+
+        storage::set_project(&env, &project);
+        storage::add_merchant_project(&env, &merchant, id);
+        storage::bump_instance(&env);
+
+        events::emit_project_created(&env, id, &merchant);
+        Ok(id)
     }
 
     /// Create a new billing plan. Returns the plan ID.
@@ -38,7 +68,7 @@ impl VowenaContract {
         grace_period: u64,
         price_ceiling: i128,
         name: String,
-        project_slot: u32,
+        project_id: u64,
     ) -> Result<u64, VowenaError> {
         merchant.require_auth();
 
@@ -50,6 +80,14 @@ impl VowenaContract {
         }
         if price_ceiling < amount {
             return Err(VowenaError::CeilingBelowAmount);
+        }
+        // The plan's parent project must exist and be owned by the merchant
+        if !storage::has_project(&env, project_id) {
+            return Err(VowenaError::PlanNotFound);
+        }
+        let project = storage::get_project(&env, project_id);
+        if project.merchant != merchant {
+            return Err(VowenaError::Unauthorized);
         }
 
         let plan_id = storage::get_next_plan_id(&env);
@@ -68,7 +106,7 @@ impl VowenaContract {
             created_at: env.ledger().timestamp(),
             active: true,
             name,
-            project_slot,
+            project_id,
         };
 
         storage::set_plan(&env, &plan);
@@ -346,6 +384,17 @@ impl VowenaContract {
 
     pub fn get_plan_subscribers(env: Env, plan_id: u64) -> Vec<u64> {
         storage::get_plan_subs(&env, plan_id)
+    }
+
+    pub fn get_project(env: Env, project_id: u64) -> Result<Project, VowenaError> {
+        if !storage::has_project(&env, project_id) {
+            return Err(VowenaError::PlanNotFound);
+        }
+        Ok(storage::get_project(&env, project_id))
+    }
+
+    pub fn get_merchant_projects(env: Env, merchant: Address) -> Vec<u64> {
+        storage::get_merchant_projects(&env, &merchant)
     }
 
     pub fn extend_ttl(env: Env, plan_id: u64, sub_id: u64) {

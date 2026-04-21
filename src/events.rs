@@ -9,6 +9,13 @@ pub fn emit_plan_created(env: &Env, plan_id: u64, merchant: &Address) {
     );
 }
 
+pub fn emit_project_created(env: &Env, project_id: u64, merchant: &Address) {
+    env.events().publish(
+        (Symbol::new(env, "project_created"), merchant.clone()),
+        project_id,
+    );
+}
+
 pub fn emit_plan_amount_updated(env: &Env, plan_id: u64, new_amount: i128) {
     env.events()
         .publish((Symbol::new(env, "plan_updated"),), (plan_id, new_amount));
