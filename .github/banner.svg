@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 320" width="1280" height="320" role="img" aria-label="Vowena Protocol — Trustless recurring payments on Stellar">
+  <title>Vowena Protocol</title>
+  <desc>Trustless recurring payments on Stellar, powered by Soroban smart contracts.</desc>
+
+  <defs>
+    <!-- Background gradient: deep violet, reads on both GitHub themes -->
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0F0F16"/>
+      <stop offset="55%" stop-color="#160F3A"/>
+      <stop offset="100%" stop-color="#1A0F52"/>
+    </linearGradient>
+
+    <!-- Soft violet glow behind the loop symbol -->
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#6B4EFF" stop-opacity="0.55"/>
+      <stop offset="60%" stop-color="#6B4EFF" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#6B4EFF" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Right-side fade for orbital rings -->
+    <linearGradient id="ringFade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#6B4EFF" stop-opacity="0"/>
+      <stop offset="55%" stop-color="#6B4EFF" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#B5A8FF" stop-opacity="0.85"/>
+    </linearGradient>
+
+    <linearGradient id="ringFadeSoft" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#6B4EFF" stop-opacity="0"/>
+      <stop offset="60%" stop-color="#6B4EFF" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#9B85FF" stop-opacity="0.45"/>
+    </linearGradient>
+
+    <!-- 24px dot grid -->
+    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="1" fill="#FFFFFF" fill-opacity="0.045"/>
+    </pattern>
+
+    <!-- Subtle vignette to push the corners back -->
+    <radialGradient id="vignette" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="65%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.45"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Base layers -->
+  <rect width="1280" height="320" fill="url(#bg)"/>
+  <rect width="1280" height="320" fill="url(#dots)"/>
+  <rect width="1280" height="320" fill="url(#vignette)"/>
+
+  <!-- Hairline border (top + bottom) for that protocol-grade feel -->
+  <line x1="0" y1="0.5" x2="1280" y2="0.5" stroke="#FFFFFF" stroke-opacity="0.06"/>
+  <line x1="0" y1="319.5" x2="1280" y2="319.5" stroke="#FFFFFF" stroke-opacity="0.06"/>
+
+  <!-- Soft accent glow behind the symbol -->
+  <circle cx="170" cy="160" r="180" fill="url(#glow)"/>
+
+  <!-- Logo: flowing loop, scaled to 160px from the 80-unit canonical viewBox -->
+  <g transform="translate(90 80) scale(2)">
+    <path d="M44 18C44 18 28 22 24 40C20 58 36 62 36 62" stroke="#6B4EFF" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <path d="M36 62C36 62 52 58 56 40C60 22 44 18 44 18" stroke="#6B4EFF" stroke-width="4.5" stroke-linecap="round" fill="none" opacity="0.4"/>
+    <circle cx="40" cy="40" r="3" fill="#6B4EFF"/>
+  </g>
+
+  <!-- Wordmark + meta -->
+  <g font-family="'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
+    <!-- PROTOCOL eyebrow label -->
+    <text x="288" y="138"
+          font-size="11"
+          font-weight="600"
+          fill="#B5A8FF"
+          letter-spacing="2"
+          text-rendering="geometricPrecision">PROTOCOL</text>
+
+    <!-- vowena wordmark -->
+    <text x="286" y="200"
+          font-size="84"
+          font-weight="600"
+          fill="#F4F4F5"
+          letter-spacing="-2.5"
+          text-rendering="geometricPrecision">vowena</text>
+
+    <!-- Tagline -->
+    <text x="289" y="238"
+          font-size="17"
+          font-weight="400"
+          fill="#B0ADBF"
+          letter-spacing="-0.2"
+          text-rendering="geometricPrecision">Trustless recurring payments on Stellar, powered by Soroban smart contracts.</text>
+
+    <!-- Footer meta row: monospace, far-left -->
+    <g font-family="'Space Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace"
+       font-size="11"
+       fill="#807C90"
+       letter-spacing="0.6">
+      <text x="288" y="272">SOROBAN  ·  STELLAR  ·  APACHE 2.0</text>
+    </g>
+  </g>
+
+  <!-- Right-side orbital rings: subtle, premium, hint at recurrence -->
+  <g transform="translate(1020 160)" fill="none" stroke-linecap="round">
+    <!-- Outer ring, partial arc, brightest -->
+    <circle r="170" stroke="url(#ringFadeSoft)" stroke-width="1" stroke-opacity="0.6" stroke-dasharray="2 6"/>
+    <!-- Mid ring, full -->
+    <circle r="120" stroke="url(#ringFade)" stroke-width="1.25"/>
+    <!-- Inner ring, brightest -->
+    <circle r="74" stroke="#B5A8FF" stroke-width="1.25" stroke-opacity="0.55"/>
+
+    <!-- Orbital nodes hinting at recurring billing cycles -->
+    <circle cx="74" cy="0" r="3.5" fill="#B5A8FF"/>
+    <circle cx="-120" cy="0" r="2.5" fill="#6B4EFF" opacity="0.85"/>
+    <circle cx="0" cy="-170" r="2" fill="#9B85FF" opacity="0.7"/>
+    <circle cx="120" cy="0" r="2" fill="#6B4EFF" opacity="0.5"/>
+
+    <!-- Central focal dot, echoing the logo mark -->
+    <circle r="4" fill="#6B4EFF"/>
+    <circle r="9" fill="none" stroke="#6B4EFF" stroke-opacity="0.35" stroke-width="1"/>
+  </g>
+</svg>
