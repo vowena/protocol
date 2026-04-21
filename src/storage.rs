@@ -7,14 +7,6 @@ pub const PERSISTENT_TTL_THRESHOLD: u32 = 518_400; // ~30 days
 pub const PERSISTENT_TTL_EXTEND: u32 = 2_073_600; // ~120 days
 pub const INSTANCE_TTL_THRESHOLD: u32 = 518_400; // ~30 days
 pub const INSTANCE_TTL_EXTEND: u32 = 1_555_200; // ~90 days
-// Must stay below the Stellar Asset Contract's live_until max (currently
-// 3_110_400 ledgers / ~180 days on testnet+mainnet). If this exceeds the SAC
-// cap, token.approve() traps with Error(Contract, #9) during subscribe.
-pub const MAX_APPROVAL_LEDGERS: u32 = 3_000_000; // ~173 days
-
-// Minimum approval lifetime, in ledgers. Must exceed Soroban's persistent
-// minimum TTL so token.approve() doesn't trap on very short-period plans.
-pub const MIN_APPROVAL_LEDGERS: u32 = 17_280; // ~24 hours
 
 #[contracttype]
 #[derive(Clone)]

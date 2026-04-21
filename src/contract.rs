@@ -177,12 +177,7 @@ impl VowenaContract {
         // Stripe-style semantics: charge on signup unless the plan has a trial.
         // The allowance we just approved covers this pull.
         if plan.trial_periods == 0 && plan.amount > 0 {
-            token_client.transfer_from(
-                &contract_addr,
-                &subscriber,
-                &plan.merchant,
-                &plan.amount,
-            );
+            token_client.transfer_from(&contract_addr, &subscriber, &plan.merchant, &plan.amount);
             sub.periods_billed = 1;
             events::emit_charge_success(&env, sub_id, plan.amount, &subscriber);
         }

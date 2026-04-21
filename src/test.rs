@@ -73,6 +73,16 @@ fn setup() -> TestContext {
     }
 }
 
+/// Create a Project for the merchant and return its id. Every plan in the
+/// contract must reference a project, so tests call this once per plan.
+fn project_id_for(ctx: &TestContext) -> u64 {
+    ctx.client.create_project(
+        &ctx.merchant,
+        &String::from_str(&ctx.env, "Test Project"),
+        &String::from_str(&ctx.env, ""),
+    )
+}
+
 fn create_default_plan(ctx: &TestContext) -> u64 {
     ctx.client.create_plan(
         &ctx.merchant,
@@ -84,8 +94,7 @@ fn create_default_plan(ctx: &TestContext) -> u64 {
         &GRACE_PERIOD,
         &PRICE_CEILING,
         &String::from_str(&ctx.env, "Test Plan"),
-
-        &project_id_for(&ctx),
+        &project_id_for(ctx),
     )
 }
 
@@ -149,10 +158,7 @@ fn test_create_plan_invalid_amount() {
         &0u32,
         &GRACE_PERIOD,
         &PRICE_CEILING,
-
         &String::from_str(&ctx.env, "Test Plan"),
-
-
         &project_id_for(&ctx),
     );
     assert!(result.is_err());
@@ -170,10 +176,7 @@ fn test_create_plan_invalid_period() {
         &0u32,
         &GRACE_PERIOD,
         &PRICE_CEILING,
-
         &String::from_str(&ctx.env, "Test Plan"),
-
-
         &project_id_for(&ctx),
     );
     assert!(result.is_err());
@@ -191,10 +194,7 @@ fn test_create_plan_ceiling_below_amount() {
         &0u32,
         &GRACE_PERIOD,
         &(PLAN_AMOUNT - 1), // ceiling below amount
-
         &String::from_str(&ctx.env, "Test Plan"),
-
-
         &project_id_for(&ctx),
     );
     assert!(result.is_err());
@@ -208,7 +208,12 @@ fn test_create_plan_ceiling_below_amount() {
 fn test_subscribe() {
     let ctx = setup();
     let plan_id = create_default_plan(&ctx);
-    let sub_id = ctx.client.subscribe(&ctx.subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    let sub_id = ctx.client.subscribe(
+        &ctx.subscriber,
+        &plan_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
     assert_eq!(sub_id, 1);
 
     let sub = ctx.client.get_subscription(&sub_id);
@@ -229,7 +234,9 @@ fn test_subscribe() {
 fn test_subscribe_inactive_plan() {
     let ctx = setup();
     // Plan ID 99 doesn't exist
-    let result = ctx.client.try_subscribe(&ctx.subscriber, &99u64, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    let result =
+        ctx.client
+            .try_subscribe(&ctx.subscriber, &99u64, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
     assert!(result.is_err());
 }
 
@@ -241,7 +248,12 @@ fn test_subscribe_inactive_plan() {
 fn test_charge_happy_path() {
     let ctx = setup();
     let plan_id = create_default_plan(&ctx);
-    let sub_id = ctx.client.subscribe(&ctx.subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    let sub_id = ctx.client.subscribe(
+        &ctx.subscriber,
+        &plan_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
     // First period was charged on subscribe.
 
     let balance_before = ctx.token_client.balance(&ctx.subscriber);
@@ -265,7 +277,12 @@ fn test_charge_happy_path() {
 fn test_charge_not_due() {
     let ctx = setup();
     let plan_id = create_default_plan(&ctx);
-    let sub_id = ctx.client.subscribe(&ctx.subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    let sub_id = ctx.client.subscribe(
+        &ctx.subscriber,
+        &plan_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
 
     // Don't advance time - billing not due (the first period was charged
     // on subscribe; next charge is one period later)
@@ -289,14 +306,16 @@ fn test_charge_trial_period() {
         &0u32,
         &GRACE_PERIOD,
         &PRICE_CEILING,
-
         &String::from_str(&ctx.env, "Test Plan"),
-
-
         &project_id_for(&ctx),
     );
 
-    let sub_id = ctx.client.subscribe(&ctx.subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    let sub_id = ctx.client.subscribe(
+        &ctx.subscriber,
+        &plan_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
     let balance_before = ctx.token_client.balance(&ctx.subscriber);
 
     // First trial charge
@@ -338,9 +357,16 @@ fn test_charge_insufficient_balance() {
     let ctx = setup();
     let plan_id = create_default_plan(&ctx);
 
-    // Create a subscriber with no balance
+    // Subscriber has *just enough* for the atomic signup charge and nothing
+    // more. The next charge attempt will fail on zero balance.
     let broke_subscriber = Address::generate(&ctx.env);
-    let sub_id = ctx.client.subscribe(&broke_subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    ctx.token_admin_client.mint(&broke_subscriber, &PLAN_AMOUNT);
+    let sub_id = ctx.client.subscribe(
+        &broke_subscriber,
+        &plan_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
 
     advance_time(&ctx.env, MONTH + 1);
     let result = ctx.client.charge(&sub_id);
@@ -356,9 +382,16 @@ fn test_charge_grace_retry_success() {
     let ctx = setup();
     let plan_id = create_default_plan(&ctx);
 
-    // Create a subscriber with no balance initially
+    // Fund just enough for the atomic signup charge. The 2nd period will
+    // fail until we fund again during the grace window.
     let retry_subscriber = Address::generate(&ctx.env);
-    let sub_id = ctx.client.subscribe(&retry_subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    ctx.token_admin_client.mint(&retry_subscriber, &PLAN_AMOUNT);
+    let sub_id = ctx.client.subscribe(
+        &retry_subscriber,
+        &plan_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
 
     advance_time(&ctx.env, MONTH + 1);
 
@@ -377,7 +410,8 @@ fn test_charge_grace_retry_success() {
     let sub = ctx.client.get_subscription(&sub_id);
     assert_eq!(sub.status, SubscriptionStatus::Active);
     assert_eq!(sub.failed_at, 0); // cleared on success
-    assert_eq!(sub.periods_billed, 1);
+                                  // 1 signup charge + 1 retry success = 2 periods billed
+    assert_eq!(sub.periods_billed, 2);
 }
 
 #[test]
@@ -385,8 +419,15 @@ fn test_charge_grace_expire_pause() {
     let ctx = setup();
     let plan_id = create_default_plan(&ctx);
 
+    // Fund just enough for signup; after that the subscriber is broke.
     let broke_subscriber = Address::generate(&ctx.env);
-    let sub_id = ctx.client.subscribe(&broke_subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    ctx.token_admin_client.mint(&broke_subscriber, &PLAN_AMOUNT);
+    let sub_id = ctx.client.subscribe(
+        &broke_subscriber,
+        &plan_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
 
     advance_time(&ctx.env, MONTH + 1);
 
@@ -409,8 +450,15 @@ fn test_charge_pause_to_cancel() {
     let ctx = setup();
     let plan_id = create_default_plan(&ctx);
 
+    // Fund just enough for signup; subscriber is broke afterwards.
     let broke_subscriber = Address::generate(&ctx.env);
-    let sub_id = ctx.client.subscribe(&broke_subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    ctx.token_admin_client.mint(&broke_subscriber, &PLAN_AMOUNT);
+    let sub_id = ctx.client.subscribe(
+        &broke_subscriber,
+        &plan_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
 
     advance_time(&ctx.env, MONTH + 1);
 
@@ -434,34 +482,37 @@ fn test_charge_pause_to_cancel() {
 #[test]
 fn test_charge_max_periods_expired() {
     let ctx = setup();
-    // Plan with max 2 periods
+    // Plan with max 3 periods. Subscribe consumes 1 (atomic signup charge),
+    // then we charge twice more to hit max, then a 4th attempt expires.
     let plan_id = ctx.client.create_plan(
         &ctx.merchant,
         &ctx.token_address,
         &PLAN_AMOUNT,
         &MONTH,
         &0u32,
-        &2u32, // max 2 periods
+        &3u32, // max 3 periods
         &GRACE_PERIOD,
         &PRICE_CEILING,
-
         &String::from_str(&ctx.env, "Test Plan"),
-
-
         &project_id_for(&ctx),
     );
 
-    let sub_id = ctx.client.subscribe(&ctx.subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    let sub_id = ctx.client.subscribe(
+        &ctx.subscriber,
+        &plan_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
 
-    // Charge period 1
+    // Charge period 2
     advance_time(&ctx.env, MONTH + 1);
     assert!(ctx.client.charge(&sub_id));
 
-    // Charge period 2
+    // Charge period 3 (hits max)
     advance_time(&ctx.env, MONTH);
     assert!(ctx.client.charge(&sub_id));
 
-    // Period 3 -> expired
+    // Period 4 -> expired
     advance_time(&ctx.env, MONTH);
     let result = ctx.client.charge(&sub_id);
     assert!(!result);
@@ -474,7 +525,12 @@ fn test_charge_max_periods_expired() {
 fn test_charge_permissionless() {
     let ctx = setup();
     let plan_id = create_default_plan(&ctx);
-    let sub_id = ctx.client.subscribe(&ctx.subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    let sub_id = ctx.client.subscribe(
+        &ctx.subscriber,
+        &plan_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
 
     advance_time(&ctx.env, MONTH + 1);
 
@@ -495,7 +551,12 @@ fn test_charge_permissionless() {
 fn test_cancel_by_subscriber() {
     let ctx = setup();
     let plan_id = create_default_plan(&ctx);
-    let sub_id = ctx.client.subscribe(&ctx.subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    let sub_id = ctx.client.subscribe(
+        &ctx.subscriber,
+        &plan_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
 
     ctx.client.cancel(&ctx.subscriber, &sub_id);
 
@@ -512,7 +573,12 @@ fn test_cancel_by_subscriber() {
 fn test_cancel_by_merchant() {
     let ctx = setup();
     let plan_id = create_default_plan(&ctx);
-    let sub_id = ctx.client.subscribe(&ctx.subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    let sub_id = ctx.client.subscribe(
+        &ctx.subscriber,
+        &plan_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
 
     ctx.client.cancel(&ctx.merchant, &sub_id);
 
@@ -524,7 +590,12 @@ fn test_cancel_by_merchant() {
 fn test_cancel_unauthorized() {
     let ctx = setup();
     let plan_id = create_default_plan(&ctx);
-    let sub_id = ctx.client.subscribe(&ctx.subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    let sub_id = ctx.client.subscribe(
+        &ctx.subscriber,
+        &plan_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
 
     let random = Address::generate(&ctx.env);
     let result = ctx.client.try_cancel(&random, &sub_id);
@@ -539,7 +610,12 @@ fn test_cancel_unauthorized() {
 fn test_refund() {
     let ctx = setup();
     let plan_id = create_default_plan(&ctx);
-    let sub_id = ctx.client.subscribe(&ctx.subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    let sub_id = ctx.client.subscribe(
+        &ctx.subscriber,
+        &plan_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
 
     // Charge first
     advance_time(&ctx.env, MONTH + 1);
@@ -592,7 +668,12 @@ fn test_update_amount_exceeds_ceiling() {
 fn test_migration_request() {
     let ctx = setup();
     let old_plan_id = create_default_plan(&ctx);
-    let sub_id = ctx.client.subscribe(&ctx.subscriber, &old_plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    let sub_id = ctx.client.subscribe(
+        &ctx.subscriber,
+        &old_plan_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
 
     // Create new plan
     let new_plan_id = ctx.client.create_plan(
@@ -604,10 +685,7 @@ fn test_migration_request() {
         &0u32,
         &GRACE_PERIOD,
         &(PRICE_CEILING * 2),
-
         &String::from_str(&ctx.env, "New Plan"),
-
-
         &project_id_for(&ctx),
     );
 
@@ -622,7 +700,12 @@ fn test_migration_request() {
 fn test_migration_accept() {
     let ctx = setup();
     let old_plan_id = create_default_plan(&ctx);
-    let sub_id = ctx.client.subscribe(&ctx.subscriber, &old_plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    let sub_id = ctx.client.subscribe(
+        &ctx.subscriber,
+        &old_plan_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
 
     let new_plan_id = ctx.client.create_plan(
         &ctx.merchant,
@@ -633,17 +716,19 @@ fn test_migration_accept() {
         &0u32,
         &GRACE_PERIOD,
         &(PRICE_CEILING * 2),
-
         &String::from_str(&ctx.env, "New Plan"),
-
-
         &project_id_for(&ctx),
     );
 
     ctx.client
         .request_migration(&ctx.merchant, &old_plan_id, &new_plan_id);
 
-    let new_sub_id = ctx.client.accept_migration(&ctx.subscriber, &sub_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    let new_sub_id = ctx.client.accept_migration(
+        &ctx.subscriber,
+        &sub_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
 
     // Old sub is cancelled
     let old_sub = ctx.client.get_subscription(&sub_id);
@@ -660,7 +745,12 @@ fn test_migration_accept() {
 fn test_migration_reject() {
     let ctx = setup();
     let old_plan_id = create_default_plan(&ctx);
-    let sub_id = ctx.client.subscribe(&ctx.subscriber, &old_plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    let sub_id = ctx.client.subscribe(
+        &ctx.subscriber,
+        &old_plan_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
 
     let new_plan_id = ctx.client.create_plan(
         &ctx.merchant,
@@ -671,10 +761,7 @@ fn test_migration_reject() {
         &0u32,
         &GRACE_PERIOD,
         &(PRICE_CEILING * 2),
-
         &String::from_str(&ctx.env, "New Plan"),
-
-
         &project_id_for(&ctx),
     );
 
@@ -696,8 +783,16 @@ fn test_reactivate() {
     let ctx = setup();
     let plan_id = create_default_plan(&ctx);
 
+    // Fund just enough for the atomic signup charge; the next billing will
+    // fail and drive the subscription into Paused.
     let broke_subscriber = Address::generate(&ctx.env);
-    let sub_id = ctx.client.subscribe(&broke_subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    ctx.token_admin_client.mint(&broke_subscriber, &PLAN_AMOUNT);
+    let sub_id = ctx.client.subscribe(
+        &broke_subscriber,
+        &plan_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
 
     // Fail -> grace -> pause
     advance_time(&ctx.env, MONTH + 1);
@@ -708,14 +803,20 @@ fn test_reactivate() {
     let sub = ctx.client.get_subscription(&sub_id);
     assert_eq!(sub.status, SubscriptionStatus::Paused);
 
-    // Fund and reactivate
+    // Fund and reactivate. Reactivate attempts an immediate charge, so this
+    // brings periods_billed to 2 (1 from signup + 1 from reactivate).
     ctx.token_admin_client.mint(&broke_subscriber, &MINT_AMOUNT);
-    let charged = ctx.client.reactivate(&broke_subscriber, &sub_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    let charged = ctx.client.reactivate(
+        &broke_subscriber,
+        &sub_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
     assert!(charged);
 
     let sub = ctx.client.get_subscription(&sub_id);
     assert_eq!(sub.status, SubscriptionStatus::Active);
-    assert_eq!(sub.periods_billed, 1);
+    assert_eq!(sub.periods_billed, 2);
 }
 
 // ============================================================
@@ -730,36 +831,34 @@ fn test_full_lifecycle() {
     let plan_id = create_default_plan(&ctx);
 
     // 2. Subscribe
-    let sub_id = ctx.client.subscribe(&ctx.subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    let sub_id = ctx.client.subscribe(
+        &ctx.subscriber,
+        &plan_id,
+        &APPROVAL_LEDGER,
+        &APPROVAL_PERIODS,
+    );
     assert_eq!(
         ctx.client.get_subscription(&sub_id).status,
         SubscriptionStatus::Active
     );
 
-    // 3. Charge 3 times
+    // 3. Charge 3 more times (subscribe already billed 1 atomically, so
+    //    total billed becomes 4).
     for _ in 0..3 {
         advance_time(&ctx.env, MONTH + 1);
         assert!(ctx.client.charge(&sub_id));
     }
-    assert_eq!(ctx.client.get_subscription(&sub_id).periods_billed, 3);
+    assert_eq!(ctx.client.get_subscription(&sub_id).periods_billed, 4);
 
-    // 4. Drain subscriber balance to force failure
-    let remaining = ctx.token_client.balance(&ctx.subscriber);
-    if remaining > 0 {
-        // Transfer remaining to merchant to drain
-        // Use a different approach since we can't easily drain
-        // Instead, create a plan with amount > remaining balance
-    }
-    // Actually, let's just test cancel flow
-    // 5. Cancel
+    // 4. Cancel
     ctx.client.cancel(&ctx.subscriber, &sub_id);
     assert_eq!(
         ctx.client.get_subscription(&sub_id).status,
         SubscriptionStatus::Cancelled
     );
 
-    // 6. Verify total charges
-    let expected_deduction = PLAN_AMOUNT * 3;
+    // 5. Verify total charges — 4 periods × PLAN_AMOUNT
+    let expected_deduction = PLAN_AMOUNT * 4;
     let final_balance = ctx.token_client.balance(&ctx.subscriber);
     assert_eq!(MINT_AMOUNT - final_balance, expected_deduction);
 }
@@ -778,17 +877,16 @@ fn test_full_lifecycle_with_failure_and_reactivation() {
         &0u32,
         &GRACE_PERIOD,
         &PRICE_CEILING,
-
         &String::from_str(&ctx.env, "Test Plan"),
-
-
         &project_id_for(&ctx),
     );
 
     // Subscribe
     let poor_sub = Address::generate(&ctx.env);
     ctx.token_admin_client.mint(&poor_sub, &(PLAN_AMOUNT * 2)); // Only enough for 2 real charges
-    let sub_id = ctx.client.subscribe(&poor_sub, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    let sub_id = ctx
+        .client
+        .subscribe(&poor_sub, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
 
     // Trial charge (free)
     advance_time(&ctx.env, MONTH + 1);
@@ -820,7 +918,9 @@ fn test_full_lifecycle_with_failure_and_reactivation() {
 
     // Fund and reactivate
     ctx.token_admin_client.mint(&poor_sub, &MINT_AMOUNT);
-    let charged = ctx.client.reactivate(&poor_sub, &sub_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    let charged = ctx
+        .client
+        .reactivate(&poor_sub, &sub_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
     assert!(charged);
     assert_eq!(
         ctx.client.get_subscription(&sub_id).status,
