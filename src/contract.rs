@@ -38,6 +38,7 @@ impl VowenaContract {
         grace_period: u64,
         price_ceiling: i128,
         name: String,
+        project_slot: u32,
     ) -> Result<u64, VowenaError> {
         merchant.require_auth();
 
@@ -67,6 +68,7 @@ impl VowenaContract {
             created_at: env.ledger().timestamp(),
             active: true,
             name,
+            project_slot,
         };
 
         storage::set_plan(&env, &plan);

@@ -25,6 +25,10 @@ pub struct Plan {
     pub active: bool,
     /// Display name set by the merchant at create time (max ~64 chars on chain).
     pub name: String,
+    /// Which project (0-based slot) this plan belongs to. Lets a single
+    /// merchant operate multiple distinct products from one wallet without
+    /// needing a separate ManageData tag op for each plan.
+    pub project_slot: u32,
 }
 
 #[contracttype]

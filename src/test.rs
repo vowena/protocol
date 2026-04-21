@@ -84,6 +84,8 @@ fn create_default_plan(ctx: &TestContext) -> u64 {
         &GRACE_PERIOD,
         &PRICE_CEILING,
         &String::from_str(&ctx.env, "Test Plan"),
+
+        &0u32,
     )
 }
 
@@ -149,6 +151,9 @@ fn test_create_plan_invalid_amount() {
         &PRICE_CEILING,
 
         &String::from_str(&ctx.env, "Test Plan"),
+
+
+        &0u32,
     );
     assert!(result.is_err());
 }
@@ -167,6 +172,9 @@ fn test_create_plan_invalid_period() {
         &PRICE_CEILING,
 
         &String::from_str(&ctx.env, "Test Plan"),
+
+
+        &0u32,
     );
     assert!(result.is_err());
 }
@@ -185,6 +193,9 @@ fn test_create_plan_ceiling_below_amount() {
         &(PLAN_AMOUNT - 1), // ceiling below amount
 
         &String::from_str(&ctx.env, "Test Plan"),
+
+
+        &0u32,
     );
     assert!(result.is_err());
 }
@@ -280,6 +291,9 @@ fn test_charge_trial_period() {
         &PRICE_CEILING,
 
         &String::from_str(&ctx.env, "Test Plan"),
+
+
+        &0u32,
     );
 
     let sub_id = ctx.client.subscribe(&ctx.subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
@@ -432,6 +446,9 @@ fn test_charge_max_periods_expired() {
         &PRICE_CEILING,
 
         &String::from_str(&ctx.env, "Test Plan"),
+
+
+        &0u32,
     );
 
     let sub_id = ctx.client.subscribe(&ctx.subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
@@ -589,6 +606,9 @@ fn test_migration_request() {
         &(PRICE_CEILING * 2),
 
         &String::from_str(&ctx.env, "New Plan"),
+
+
+        &0u32,
     );
 
     ctx.client
@@ -615,6 +635,9 @@ fn test_migration_accept() {
         &(PRICE_CEILING * 2),
 
         &String::from_str(&ctx.env, "New Plan"),
+
+
+        &0u32,
     );
 
     ctx.client
@@ -650,6 +673,9 @@ fn test_migration_reject() {
         &(PRICE_CEILING * 2),
 
         &String::from_str(&ctx.env, "New Plan"),
+
+
+        &0u32,
     );
 
     ctx.client
@@ -754,6 +780,9 @@ fn test_full_lifecycle_with_failure_and_reactivation() {
         &PRICE_CEILING,
 
         &String::from_str(&ctx.env, "Test Plan"),
+
+
+        &0u32,
     );
 
     // Subscribe
