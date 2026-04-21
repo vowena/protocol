@@ -3,7 +3,7 @@
 use soroban_sdk::{
     testutils::{Address as _, Ledger},
     token::{StellarAssetClient, TokenClient},
-    Address, Env,
+    Address, Env, String,
 };
 
 use crate::contract::{VowenaContract, VowenaContractClient};
@@ -83,6 +83,7 @@ fn create_default_plan(ctx: &TestContext) -> u64 {
         &0, // unlimited
         &GRACE_PERIOD,
         &PRICE_CEILING,
+        &String::from_str(&ctx.env, "Test Plan"),
     )
 }
 
@@ -146,6 +147,8 @@ fn test_create_plan_invalid_amount() {
         &0u32,
         &GRACE_PERIOD,
         &PRICE_CEILING,
+
+        &String::from_str(&ctx.env, "Test Plan"),
     );
     assert!(result.is_err());
 }
@@ -162,6 +165,8 @@ fn test_create_plan_invalid_period() {
         &0u32,
         &GRACE_PERIOD,
         &PRICE_CEILING,
+
+        &String::from_str(&ctx.env, "Test Plan"),
     );
     assert!(result.is_err());
 }
@@ -178,6 +183,8 @@ fn test_create_plan_ceiling_below_amount() {
         &0u32,
         &GRACE_PERIOD,
         &(PLAN_AMOUNT - 1), // ceiling below amount
+
+        &String::from_str(&ctx.env, "Test Plan"),
     );
     assert!(result.is_err());
 }
@@ -197,7 +204,8 @@ fn test_subscribe() {
     assert_eq!(sub.plan_id, plan_id);
     assert_eq!(sub.subscriber, ctx.subscriber);
     assert_eq!(sub.status, SubscriptionStatus::Active);
-    assert_eq!(sub.periods_billed, 0);
+    // Stripe-style: no trial means we charge immediately on subscribe
+    assert_eq!(sub.periods_billed, 1);
 
     let sub_subs = ctx.client.get_subscriber_subscriptions(&ctx.subscriber);
     assert_eq!(sub_subs.len(), 1);
@@ -223,6 +231,7 @@ fn test_charge_happy_path() {
     let ctx = setup();
     let plan_id = create_default_plan(&ctx);
     let sub_id = ctx.client.subscribe(&ctx.subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
+    // First period was charged on subscribe.
 
     let balance_before = ctx.token_client.balance(&ctx.subscriber);
 
@@ -236,7 +245,8 @@ fn test_charge_happy_path() {
     assert_eq!(balance_before - balance_after, PLAN_AMOUNT);
 
     let sub = ctx.client.get_subscription(&sub_id);
-    assert_eq!(sub.periods_billed, 1);
+    // Initial subscribe charge (1) + this charge (1) = 2 periods billed
+    assert_eq!(sub.periods_billed, 2);
     assert_eq!(sub.status, SubscriptionStatus::Active);
 }
 
@@ -246,12 +256,13 @@ fn test_charge_not_due() {
     let plan_id = create_default_plan(&ctx);
     let sub_id = ctx.client.subscribe(&ctx.subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
 
-    // Don't advance time - billing not due
+    // Don't advance time - billing not due (the first period was charged
+    // on subscribe; next charge is one period later)
     let result = ctx.client.charge(&sub_id);
     assert!(!result);
 
     let sub = ctx.client.get_subscription(&sub_id);
-    assert_eq!(sub.periods_billed, 0);
+    assert_eq!(sub.periods_billed, 1);
 }
 
 #[test]
@@ -267,6 +278,8 @@ fn test_charge_trial_period() {
         &0u32,
         &GRACE_PERIOD,
         &PRICE_CEILING,
+
+        &String::from_str(&ctx.env, "Test Plan"),
     );
 
     let sub_id = ctx.client.subscribe(&ctx.subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
@@ -417,6 +430,8 @@ fn test_charge_max_periods_expired() {
         &2u32, // max 2 periods
         &GRACE_PERIOD,
         &PRICE_CEILING,
+
+        &String::from_str(&ctx.env, "Test Plan"),
     );
 
     let sub_id = ctx.client.subscribe(&ctx.subscriber, &plan_id, &APPROVAL_LEDGER, &APPROVAL_PERIODS);
@@ -572,6 +587,8 @@ fn test_migration_request() {
         &0u32,
         &GRACE_PERIOD,
         &(PRICE_CEILING * 2),
+
+        &String::from_str(&ctx.env, "New Plan"),
     );
 
     ctx.client
@@ -596,6 +613,8 @@ fn test_migration_accept() {
         &0u32,
         &GRACE_PERIOD,
         &(PRICE_CEILING * 2),
+
+        &String::from_str(&ctx.env, "New Plan"),
     );
 
     ctx.client
@@ -629,6 +648,8 @@ fn test_migration_reject() {
         &0u32,
         &GRACE_PERIOD,
         &(PRICE_CEILING * 2),
+
+        &String::from_str(&ctx.env, "New Plan"),
     );
 
     ctx.client
@@ -731,6 +752,8 @@ fn test_full_lifecycle_with_failure_and_reactivation() {
         &0u32,
         &GRACE_PERIOD,
         &PRICE_CEILING,
+
+        &String::from_str(&ctx.env, "Test Plan"),
     );
 
     // Subscribe

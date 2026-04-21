@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address};
+use soroban_sdk::{contracttype, Address, String};
 
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
@@ -23,6 +23,8 @@ pub struct Plan {
     pub price_ceiling: i128,
     pub created_at: u64,
     pub active: bool,
+    /// Display name set by the merchant at create time (max ~64 chars on chain).
+    pub name: String,
 }
 
 #[contracttype]

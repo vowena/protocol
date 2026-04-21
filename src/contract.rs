@@ -1,6 +1,6 @@
 #![allow(clippy::too_many_arguments)]
 
-use soroban_sdk::{contract, contractimpl, token, Address, Env, Vec};
+use soroban_sdk::{contract, contractimpl, token, Address, Env, String, Vec};
 
 use crate::billing;
 use crate::errors::VowenaError;
@@ -37,6 +37,7 @@ impl VowenaContract {
         max_periods: u32,
         grace_period: u64,
         price_ceiling: i128,
+        name: String,
     ) -> Result<u64, VowenaError> {
         merchant.require_auth();
 
@@ -65,6 +66,7 @@ impl VowenaContract {
             price_ceiling,
             created_at: env.ledger().timestamp(),
             active: true,
+            name,
         };
 
         storage::set_plan(&env, &plan);
